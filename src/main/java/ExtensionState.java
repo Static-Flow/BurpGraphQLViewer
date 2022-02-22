@@ -4,7 +4,6 @@ import burp.IBurpExtenderCallbacks;
 import burp.IHttpRequestResponse;
 import burp.IParameter;
 import burp.IRequestInfo;
-import com.google.gson.GsonBuilder;
 import graphql.language.Field;
 import graphql.language.OperationDefinition;
 import graphql.parser.Parser;
@@ -25,8 +24,6 @@ public class ExtensionState {
     private IBurpExtenderCallbacks                                  callbacks;
     //map of all GraphQL requests, keys are "Operations", values are the request data
     private final HashMap<String, ArrayList<GraphQLHistoryEvent>>   graphQLHistoryEvents;
-    //JSON lib for handling GraphQL request parsing
-    private final GsonBuilder                                       builder;
     //reference to the Burp Proxy Listener that catches GraphQL requests
     private final ProxyListener                                     httpProxyListener;
     //reference to this extensions custom Tab UI
@@ -35,7 +32,6 @@ public class ExtensionState {
 
     private ExtensionState() {
         graphQLHistoryEvents = new HashMap<>();
-        builder = new GsonBuilder();
         httpProxyListener = new ProxyListener();
 
     }
@@ -44,10 +40,6 @@ public class ExtensionState {
         if (state == null)
             state = new ExtensionState();
         return state;
-    }
-
-    public GsonBuilder getBuilder() {
-        return builder;
     }
 
     public IBurpExtenderCallbacks getCallbacks() {

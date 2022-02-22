@@ -21,7 +21,7 @@ public class ProxyListener implements IProxyListener {
                         1. There's no need to record GraphQL Requests that never get a response from the server
                         2. Responses will have the fully hydrated `IHttpRequestResponse` object which is useful for showing in the UI
                  */
-                if ( messageIsRequest == false ) {
+                if (!messageIsRequest) {
                     IHttpRequestResponse proxyRequestResponse = proxyMessage.getMessageInfo();
                     ExtensionState.getInstance().parseRequestForGraphQLContent(proxyRequestResponse);
                 }
