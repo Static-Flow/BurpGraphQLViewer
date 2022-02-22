@@ -26,7 +26,7 @@ public class HistoryView {
     }
 
     public void updateOperationsTable(String operationName) {
-        if(operationsList.getSelectedIndex() != -1 && operationsList.getModel().getElementAt(operationsList.getSelectedIndex()).equals(operationName)) {
+        if (operationsList.getSelectedIndex() != -1 && operationsList.getModel().getElementAt(operationsList.getSelectedIndex()).equals(operationName)) {
             updateInViewOperationTable();
         }
     }
@@ -34,8 +34,8 @@ public class HistoryView {
     private void updateInViewOperationTable() {
         operationsTable.removeAll();
         ArrayList<GraphQLHistoryEvent> selectedHistoryEventsByOperation = ExtensionState.getInstance().getGraphQLHistoryEventsMap().get(operationsList.getModel().getElementAt(operationsList.getSelectedIndex()));
-        for( int i=0; i< selectedHistoryEventsByOperation.size();i++ ){
-            operationsTable.addTab(String.valueOf(i),selectedHistoryEventsByOperation.get(i).getDetailedView());
+        for (int i = 0; i < selectedHistoryEventsByOperation.size(); i++) {
+            operationsTable.addTab(String.valueOf(i), selectedHistoryEventsByOperation.get(i).getDetailedView());
         }
     }
 
@@ -79,7 +79,6 @@ public class HistoryView {
     public JComponent $$$getRootComponent$$$() {
         return basePanel;
     }
-
 
 
 }

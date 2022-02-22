@@ -113,24 +113,21 @@ public class ExtensionState {
     /*
     Parse potential Proxy Request to determine if it's a GraphQL request following the steps below:
         1. Check if the URL contains the string "graphql" (This may be lossy or over-zealous) There's no universal GraphQL endpoint scheme
-        2. Try and extract the optional query parameters containing the query, and operationName.
-        3. Check the request method and parse the request accordingly
-            3-A. If the method is GET, either take the "operationName" from the query params or parse the "query" param for it
-            3-B. If the method is POST and includes query params but NOT "Content-Type: application/graphql" parse like 3-A, else parse message body for "operationName"
+        2. Try and extract the query and operationName from the request.
+        3. Parse the query if the "operationName" is not set.
         4. If an "operationName" was found, add it to the GraphQL history map.
      */
     public void parseRequestForGraphQLContent(IHttpRequestResponse proxyRequestResponse) {
         IRequestInfo requestInfo = ExtensionState.getInstance().getCallbacks().getHelpers().analyzeRequest(proxyRequestResponse);
         //If url for request is a graphql endpoint
-        if (requestInfo.getUrl().getPath().contains("graphql")) {
-            getCallbacks().printOutput("Found GraphQL request for host " + proxyRequestResponse.getHttpService().getHost());
+        if (requestInfo.getUrl().toString().contains("graphql")) {
             String operationName = "";
             String query = "";
             //Try and extract our parameters if they exist
             for (IParameter p : requestInfo.getParameters()) {
                 switch (p.getName()) {
                     case "query":
-                        query = getCallbacks().getHelpers().urlDecode(p.getValue());
+                        query = getCallbacks().getHelpers().urlDecode(p.getValue()).replaceAll("\\\\n","");
                         break;
                     case "operationName":
                         operationName = p.getValue();
@@ -140,50 +137,18 @@ public class ExtensionState {
                         break;
                 }
             }
-            //Extraction of the GraphQL query is different based on POST vs GET reqs
-            switch (requestInfo.getMethod()) {
-                case "GET":
-                    /*
-                        If it's GET, we may have everything we need already from query params. But "operationName"
-                        isn't required so if we get here and "operationName" is empty we need to decipher the "operationName" from the query body.
-                        Also of note, if "operationName" is empty then by the spec def there should only be 1 operation.
-                     */
-                    if (operationName.length() == 0) {
-                        //Add our GraphQL Event to the history
-                        operationName = parseGraphQLGetRequest(query);
-                    }
-                    break;
-                case "POST":
-                    /*
-                        If it's POST, we need to extract it from the message body. But we also need to handle two extra cases:
-                            1. If the "query" query string parameter is present (as in the GET example above), it should be parsed and handled
-                             in the same way as the HTTP GET case.
-                            2. If the "application/graphql" Content-Type header is present, treat the HTTP POST body contents as the GraphQL query string.
 
-                        POST works much like GET except we need to extract the query from the message body. Then to get the operation name
-                     */
-
-                    // If we have a query parameter set and the Content-Type is NOT `"application/graphql"` we treat it like a GET request
-                    if (query.length() != 0 && !String.valueOf(requestInfo.getContentType()).equals("application/graphql")) {
-                        operationName = parseGraphQLGetRequest(query);
-                    } else {
-                        //find out body offset in the request
-                        int offset = getCallbacks().getHelpers().analyzeRequest(proxyRequestResponse).getBodyOffset();
-                        /*
-                        Here there be small dragons. We don't know the GraphQL spec, so it can't be unmarshalled into a POJO. Instead, we unmarshal to a
-                        generic Map which is fine since the two values we want, "operationName", and "query", are always strings. Once we have the map
-                        we use the shiny new `computeIfAbsent` to determine if "operationName" was set. If it isn't, we "compute" the value using the
-                        "query" field that is always there the same way for "GET" requests.
-                         */
-                        Map o = getBuilder().create().fromJson(
-                                Arrays.toString(Arrays.copyOfRange(proxyRequestResponse.getRequest(), offset, proxyRequestResponse.getRequest().length)), Map.class);
-                        operationName = (String) o.computeIfAbsent("operationName", k -> parseGraphQLGetRequest((String) o.get("query")));
-                    }
-
-                    break;
-                default:
-                    ExtensionState.getInstance().getCallbacks().printError("Invalid GraphQL HTTP Method");
+            if (query.length() == 0) {
+                //If the query is empty this is probably not a GraphQL request.
+                return;
             }
+
+            //Burp parses the JSON literal `null` as the string "null" so we have to check for that here
+            if (operationName.length() == 0 || operationName.equals("null")) {
+                //If the operationName isn't provided the query is parsed to find it
+                operationName = parseGraphQLGetRequest(query);
+            }
+
             if( operationName.length() != 0 ) {
                 addEventToGraphQLHistoryEventsMap(
                         new GraphQLHistoryEvent(
