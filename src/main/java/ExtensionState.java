@@ -62,7 +62,13 @@ public class ExtensionState {
         ArrayList<GraphQLHistoryEvent> operationEvents = graphQLHistoryEvents.computeIfAbsent(operationName, k -> new ArrayList<>());
         operationEvents.add(event);
         if( operationEvents.size() == 1) {
-            ((DefaultListModel<String>)historyUI.getOperationsListModel()).addElement(operationName);
+            new SwingWorker<Boolean, Void>() {
+                @Override
+                public Boolean doInBackground() {
+                    ((DefaultListModel<String>)historyUI.getOperationsListModel()).addElement(operationName);
+                    return Boolean.TRUE;
+                }
+            }.execute();
         } else {
             historyUI.updateOperationsTable(operationName);
         }

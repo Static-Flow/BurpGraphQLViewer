@@ -4,6 +4,7 @@ import burp.*;
 
 import javax.swing.*;
 import java.awt.*;
+import java.nio.charset.StandardCharsets;
 
 /*
 This extension collects all previous and future GraphQL requests and displays them in a separate tab for easy viewing.
@@ -20,13 +21,8 @@ public class BurpSuiteGraphQLHistory implements IBurpExtender,
         callbacks.addSuiteTab(this);
         callbacks.setExtensionName("BurpSuiteGraphQLHistory");
         callbacks.registerProxyListener(ExtensionState.getInstance().getProxyListener());
-        new SwingWorker<Boolean, Void>() {
-            @Override
-            public Boolean doInBackground() {
-                searchExistingHistoryForGraphQLRequests();
-                return Boolean.TRUE;
-            }
-        }.execute();
+        new Thread(this::searchExistingHistoryForGraphQLRequests).start();
+
     }
 
     //Searches the Target History map for any GraphQL requests that happened before the extension was loaded
